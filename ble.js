@@ -272,90 +272,98 @@ module.exports = function (RED) {
                         node.log(`Notification is not allowed for ${character.name} characteristic.`)
                     }
                 };
-                // Get data and group based on data type.
+                // Removed grouping by characteristic in favor of dumping raw data and buffers.
+                // The values can be handled by a subsequent node.
                 for (const [key, character] of Object.entries(all.characteristics)) {
                     character.on('data', (data) => {
-                        // Do for environmental data.
-                        if (character.uuid === '2a6d' && data !== undefined) {
-                            data = data.readUInt32LE() * decimalSetter[1];
-                            environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
-                            counterPres++;
-                        } else if (character.uuid === '2a6e' && data !== undefined) {
-                            data = data.readUInt16LE() * decimalSetter[0];
-                            environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
-                            counterTemp++;
-                        } else if (character.uuid === '2a6f' && data !== undefined) {
-                            data = data.readUInt16LE() * decimalSetter[0];
-                            environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
-                            counterHum++;
-                        // Do for IMU data.
-                        } else if (character.uuid === '5543e32e51ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
-                            let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
-                            let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
-                            arduinoIMU.payload['accX'] = dataGroupedFloat[0];
-                            arduinoIMU.payload['accY'] = dataGroupedFloat[1];
-                            arduinoIMU.payload['accZ'] = dataGroupedFloat[2];
-                            counterArduinoAcc++;
-                        } else if (character.uuid === '5543e32e51ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
-                            let dataString = Buffer.from(data).toString();
-                            let dataArray = dataString.split(',');
-                            adafruitIMU.payload['ada_accX'] = parseFloat(dataArray[0]);
-                            adafruitIMU.payload['ada_accY'] = parseFloat(dataArray[1]);
-                            adafruitIMU.payload['ada_accZ'] = parseFloat(dataArray[2]);
-                            counterAdafruitAcc++;
-                        } else if (character.uuid === '5543e55451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
-                            let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
-                            let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
-                            arduinoIMU.payload['gyroX'] = dataGroupedFloat[0];
-                            arduinoIMU.payload['gyroY'] = dataGroupedFloat[1];
-                            arduinoIMU.payload['gyroZ'] = dataGroupedFloat[2];
-                            counterArduinoGyro++;
-                        } else if (character.uuid === '5543e55451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
-                            let dataString = Buffer.from(data).toString();
-                            let dataArray = dataString.split(',');
-                            adafruitIMU.payload['ada_gyroX'] = parseFloat(dataArray[0]);
-                            adafruitIMU.payload['ada_gyroY'] = parseFloat(dataArray[1]);
-                            adafruitIMU.payload['ada_gyroZ'] = parseFloat(dataArray[2]);
-                            counterAdafruitGyro++;
-                        } else if (character.uuid === '5543e64451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
-                            let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
-                            let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
-                            arduinoIMU.payload['magX'] = dataGroupedFloat[0];
-                            arduinoIMU.payload['magY'] = dataGroupedFloat[1];
-                            arduinoIMU.payload['magZ'] = dataGroupedFloat[2];
-                            counterArduinoMag++;
-                        } else if (character.uuid === '5543e64451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
-                            let dataString = Buffer.from(data).toString();
-                            let dataArray = dataString.split(',');
-                            adafruitIMU.payload['ada_magX'] = parseFloat(dataArray[0]);
-                            adafruitIMU.payload['ada_magY'] = parseFloat(dataArray[1]);
-                            adafruitIMU.payload['ada_magZ'] = parseFloat(dataArray[2]);
-                            counterAdafruitMag++;
-                        // Do for quaternion data.
-                        } else if (character.uuid === 'a2278362b3fe11ecb9090242ac120002' && data !== undefined) {
-                            let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 4);
-                            let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
-                            quaternionData.payload['qX'] = dataGroupedFloat[0];
-                            quaternionData.payload['qY'] = dataGroupedFloat[1];
-                            quaternionData.payload['qZ'] = dataGroupedFloat[2];
-                            quaternionData.payload['qW'] = dataGroupedFloat[3];
-                            send(quaternionData);
+                        if (character.uuid !== undefined && data !== undefined) {
+                            // Handle data for unhandled characteristics.
+                            send({
+                                "characteristic": character,
+                                "data": data
+                            });
                             done();
                         }
+                        // // Do for environmental data.
+                        // if (character.uuid === '2a6d' && data !== undefined) {
+                        //     data = data.readUInt32LE() * decimalSetter[1];
+                        //     environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
+                        //     counterPres++;
+                        // } else if (character.uuid === '2a6e' && data !== undefined) {
+                        //     data = data.readUInt16LE() * decimalSetter[0];
+                        //     environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
+                        //     counterTemp++;
+                        // } else if (character.uuid === '2a6f' && data !== undefined) {
+                        //     data = data.readUInt16LE() * decimalSetter[0];
+                        //     environmentalData.payload[character.name] = parseFloat(data.toFixed(2));
+                        //     counterHum++;
+                        // // Do for IMU data.
+                        // } else if (character.uuid === '5543e32e51ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
+                        //     let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
+                        //     let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
+                        //     arduinoIMU.payload['accX'] = dataGroupedFloat[0];
+                        //     arduinoIMU.payload['accY'] = dataGroupedFloat[1];
+                        //     arduinoIMU.payload['accZ'] = dataGroupedFloat[2];
+                        //     counterArduinoAcc++;
+                        // } else if (character.uuid === '5543e32e51ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
+                        //     let dataString = Buffer.from(data).toString();
+                        //     let dataArray = dataString.split(',');
+                        //     adafruitIMU.payload['ada_accX'] = parseFloat(dataArray[0]);
+                        //     adafruitIMU.payload['ada_accY'] = parseFloat(dataArray[1]);
+                        //     adafruitIMU.payload['ada_accZ'] = parseFloat(dataArray[2]);
+                        //     counterAdafruitAcc++;
+                        // } else if (character.uuid === '5543e55451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
+                        //     let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
+                        //     let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
+                        //     arduinoIMU.payload['gyroX'] = dataGroupedFloat[0];
+                        //     arduinoIMU.payload['gyroY'] = dataGroupedFloat[1];
+                        //     arduinoIMU.payload['gyroZ'] = dataGroupedFloat[2];
+                        //     counterArduinoGyro++;
+                        // } else if (character.uuid === '5543e55451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
+                        //     let dataString = Buffer.from(data).toString();
+                        //     let dataArray = dataString.split(',');
+                        //     adafruitIMU.payload['ada_gyroX'] = parseFloat(dataArray[0]);
+                        //     adafruitIMU.payload['ada_gyroY'] = parseFloat(dataArray[1]);
+                        //     adafruitIMU.payload['ada_gyroZ'] = parseFloat(dataArray[2]);
+                        //     counterAdafruitGyro++;
+                        // } else if (character.uuid === '5543e64451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Arduino') {
+                        //     let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 3);
+                        //     let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
+                        //     arduinoIMU.payload['magX'] = dataGroupedFloat[0];
+                        //     arduinoIMU.payload['magY'] = dataGroupedFloat[1];
+                        //     arduinoIMU.payload['magZ'] = dataGroupedFloat[2];
+                        //     counterArduinoMag++;
+                        // } else if (character.uuid === '5543e64451ca11ecbf630242ac130002' && data !== undefined && node.micro == 'Adafruit') {
+                        //     let dataString = Buffer.from(data).toString();
+                        //     let dataArray = dataString.split(',');
+                        //     adafruitIMU.payload['ada_magX'] = parseFloat(dataArray[0]);
+                        //     adafruitIMU.payload['ada_magY'] = parseFloat(dataArray[1]);
+                        //     adafruitIMU.payload['ada_magZ'] = parseFloat(dataArray[2]);
+                        //     counterAdafruitMag++;
+                        // // Do for quaternion data.
+                        // } else if (character.uuid === 'a2278362b3fe11ecb9090242ac120002' && data !== undefined) {
+                        //     let dataGrouped = SPLIT_TO_CHUNKS(data.toJSON().data, 4);
+                        //     let dataGroupedFloat = BUFFER_TO_FLOAT(dataGrouped);
+                        //     quaternionData.payload['qX'] = dataGroupedFloat[0];
+                        //     quaternionData.payload['qY'] = dataGroupedFloat[1];
+                        //     quaternionData.payload['qZ'] = dataGroupedFloat[2];
+                        //     quaternionData.payload['qW'] = dataGroupedFloat[3];
+                        //     send(quaternionData);
+                        //     done();
                         
                         // Send data to Node-RED after we read all given characteristics.
-                        if ((counterHum + counterPres + counterTemp) % 3 == 0 && (counterHum + counterPres + counterTemp) !== 0) {
-                            send(environmentalData);
-                            done();
-                        };
-                        if ((counterArduinoAcc + counterArduinoGyro + counterArduinoMag) % 3 == 0 && (counterArduinoAcc + counterArduinoGyro + counterArduinoMag) !== 0) {
-                            send(arduinoIMU);
-                            done();
-                        };
-                        if ((counterAdafruitAcc + counterAdafruitGyro + counterAdafruitMag) % 3 == 0 && (counterAdafruitAcc + counterAdafruitGyro + counterAdafruitMag) !== 0) {
-                            send(adafruitIMU);
-                            done();
-                        };
+                        // if ((counterHum + counterPres + counterTemp) % 3 == 0 && (counterHum + counterPres + counterTemp) !== 0) {
+                        //     send(environmentalData);
+                        //     done();
+                        // };
+                        // if ((counterArduinoAcc + counterArduinoGyro + counterArduinoMag) % 3 == 0 && (counterArduinoAcc + counterArduinoGyro + counterArduinoMag) !== 0) {
+                        //     send(arduinoIMU);
+                        //     done();
+                        // };
+                        // if ((counterAdafruitAcc + counterAdafruitGyro + counterAdafruitMag) % 3 == 0 && (counterAdafruitAcc + counterAdafruitGyro + counterAdafruitMag) !== 0) {
+                        //     send(adafruitIMU);
+                        //     done();
+                        // };
                     });
                 }
                 done();
